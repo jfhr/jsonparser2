@@ -10,7 +10,7 @@ Streaming JSON parser.
 ## Installation
 
 ```shell
-npm install jsonparser2
+npm install @jfhr/jsonparser2
 ```
 
 Works in node.js and in the browser!

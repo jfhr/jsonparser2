@@ -1,5 +1,5 @@
 {
-  "name": "jsonparser2",
+  "name": "@jfhr/jsonparser2",
   "version": "0.0.1",
   "description": "Streaming JSON parser",
   "main": "index.js",
