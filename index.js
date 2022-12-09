@@ -191,6 +191,7 @@ export class JsonParser {
 
     /**
      * Parse a partial or complete JSON string.
+     * @param text {string} The text to write to the parser
      */
     write(text) {
         for (const c of text) {
@@ -260,10 +261,11 @@ export class JsonParser {
 
     /**
      * Finish parsing. Any subsequent calls will be ignored.
+     * @param text {string?} If provided, will be written to the parser as the final value before closing.
      */
-    end() {
-        if (this.isClosed) {
-            return;
+    end(text) {
+        if (text) {
+            this.write(text);
         }
         this.isClosed = true;
         if (!this.isInsideCallback) {
