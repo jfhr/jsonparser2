@@ -1,6 +1,5 @@
 import {JsonParser} from "../index.js";
 import * as https from "https";
-import { StringDecoder } from "string_decoder";
 
 describe('JsonParser/performance', () => {
 
@@ -27,13 +26,13 @@ describe('JsonParser/performance', () => {
                 }
             }
         });
-        const decoder = new StringDecoder('utf-8');
         https.get('https://jfhr.de/jsonparser2/Q2063.json', res => {
+            res.setEncoding('utf-8');
             res.on('error', err => {
                 done.fail(err);
             });
-            res.on('data', /** @param chunk {Buffer} */ chunk => {
-                parser.write(decoder.write(chunk));
+            res.on('data', chunk => {
+                parser.write(chunk);
             });
         });
     });
