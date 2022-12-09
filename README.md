@@ -47,29 +47,78 @@ Got a value: world
 
 ### Parse node.js http/https responses
 
-Responses from the node.js `http` and `https` modules are `Buffer`s by default, not strings.
-You can use the builtin `StringDecoder` to get strings and pass the to a `JsonParser` 
-instance.
-
 ```javascript
 import * as https from 'https';
-import { StringDecoder } from "string_decoder";
 import { JsonParser } from 'jsonparser2';
 
-// Make sure to use the right encoding, utf-8 is just an example
-const decoder = new StringDecoder('utf-8');
 const parser = new JsonParser({
     // Your callbacks here...
 });
 
-https.get('https://jfhr.de/jsonparser2/Q2063.json', res => {
-    res.on('data', chunk => {
-        parser.write(decoder.write(chunk));
-    });
-    res.on('close', () => {
-        parser.end();
+await new Promise((resolve, reject) => {
+    https.get('https://jfhr.de/jsonparser2/Q2063.json', res => {
+        res.setEncoding('utf-8');
+        res.on('error', reject);
+        res.on('data', chunk => parser.write(decoder.write(chunk)));
+        res.on('close', () => {
+            parser.end();
+            resolve();
+        });
     });
 });
+```
+
+### Parse fetch responses
+
+```javascript
+import { StringDecoder } from "string_decoder";
+import { JsonParser } from 'jsonparser2';
+
+const parser = new JsonParser({
+    // Your callbacks here...
+});
+
+const response = await fetch('https://jfhr.de/jsonparser2/Q2063.json');
+const decoder = new StringDecoder('utf-8');
+for await (const chunk of response) {
+    parser.write(decoder.write(chunk));
+}
+parser.write(decoder.end());
+parser.end();
+```
+
+### Subclassing
+
+You can create a subclass of `JsonParser` if you want. In your class constructor, call `super()` and pass
+your callbacks as a parameter. Note that you need to use the arrow syntax if you want to access instance variables
+from your callbacks.
+
+```javascript
+class P1163Parser extends JsonParser {
+    private isP1163 = false;
+    private isP1163Value = false;
+    
+    constructor() {
+        super({
+            onkey: key => {
+                if (key === 'P1163') {
+                    this.isP1163 = true;
+                }
+                if (this.isP1163 && key === 'value') {
+                    this.isP1163Value = true;
+                }
+            },
+            onstring: value => {
+                if (this.isP1163Value) {
+                    let result = value;
+                    console.log('found:', result);
+                }
+            }
+        });
+    }
+}
+
+const parser = new P1163Parser();
 ```
 
 ## API Reference
