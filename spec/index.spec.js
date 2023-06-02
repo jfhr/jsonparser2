@@ -425,4 +425,48 @@ describe('JsonParser', () => {
         ]);
     });
 
+    it('2 byte utf8 \'De\' character: д', () => {
+        const p = new JsonParser(cb);
+        p.write('"д"');
+        p.end();
+        expect(calls).toEqual([
+            ['onstring', 'д']
+        ]);
+    });
+
+    it('3 byte utf8 \'Han\' character: 我', () => {
+        const p = new JsonParser(cb);
+        p.write('"我"');
+        p.end();
+        expect(calls).toEqual([
+            ['onstring', '我']
+        ]);
+    });
+
+    it('4 byte utf8 character (unicode scalar U+2070E): 𠜎', () => {
+        const p = new JsonParser(cb);
+        p.write('"𠜎"');
+        p.end();
+        expect(calls).toEqual([
+            ['onstring', '𠜎']
+        ]);
+    });
+
+    it('parse chunked surrogate pairs', () => {
+        const p = new JsonParser(cb);
+        p.write('"');
+        p.write('\\ud83c');
+        p.write('\\udff3');
+        p.write('\\ufe0f');
+        p.write('\\u200d');
+        p.write('\\u26a7');
+        p.write('\\ufe0f');
+        p.write('"');
+        p.end();
+
+        expect(calls).toEqual([
+            ['onstring', '🏳️‍⚧️']
+        ]);
+    });
+
 });
