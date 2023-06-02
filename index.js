@@ -44,7 +44,7 @@ export class JsonParser {
         this.currentValue = null;
     }
 
-    _callCallback(callback, ...args) {
+    #callCallback(callback, ...args) {
         this.isInsideCallback = true;
         try {
             callback.call(this, ...args);
@@ -53,34 +53,34 @@ export class JsonParser {
         }
     }
 
-    _peek() {
+    #peek() {
         if (this.stack.length === 0) {
             return null;
         }
         return this.stack[this.stack.length - 1];
     }
 
-    _pushObject() {
+    #pushObject() {
         this.stack.push('{');
     }
 
-    _pushArray() {
+    #pushArray() {
         this.stack.push('[');
     }
 
-    _pop() {
+    #pop() {
         this.stack.pop();
     }
 
-    _isObject() {
-        return this._peek() === '{';
+    #isObject() {
+        return this.#peek() === '{';
     }
 
-    _isArray() {
-        return this._peek() === '[';
+    #isArray() {
+        return this.#peek() === '[';
     }
 
-    _handleStringCharacter(c) {
+    #handleStringCharacter(c) {
         if (this.isStringEscape) {
             if (c === '\\') {
                 this.currentValue += c;
@@ -104,7 +104,7 @@ export class JsonParser {
             this.isStringEscape = false;
         } else if (this.unicodeEscapeSequenceIndex > -1) {
             this.unicodeEscapeSequenceValue *= 16;
-            this.unicodeEscapeSequenceValue += this._parseHexDigit(c);
+            this.unicodeEscapeSequenceValue += this.#parseHexDigit(c);
             this.unicodeEscapeSequenceIndex++;
             if (this.unicodeEscapeSequenceIndex === 4) {
                 this.currentValue += String.fromCodePoint(this.unicodeEscapeSequenceValue);
@@ -114,13 +114,13 @@ export class JsonParser {
         } else if (c === '\\') {
             this.isStringEscape = true;
         } else if (c === '"') {
-            this._finishCurrentValue();
+            this.#finishCurrentValue();
         } else {
             this.currentValue += c;
         }
     }
 
-    _handleNumberCharacter(c) {
+    #handleNumberCharacter(c) {
         if (c === 'e' || c === 'E') {
             this.exponentValue = 0;
         } else if (c === '-') {
@@ -129,57 +129,57 @@ export class JsonParser {
             }
         } else if (c === '.') {
             this.digitsAfterDecimalPoint = 0;
-        } else if (this._isDigit(c)) {
+        } else if (this.#isDigit(c)) {
             if (this.exponentValue !== null) {
                 this.exponentValue *= 10;
-                this.exponentValue += this._parseDigit(c);
+                this.exponentValue += this.#parseDigit(c);
             } else if (this.digitsAfterDecimalPoint !== null) {
                 this.digitsAfterDecimalPoint++;
-                this.currentValue += Math.pow(10, -this.digitsAfterDecimalPoint) * this._parseDigit(c);
+                this.currentValue += Math.pow(10, -this.digitsAfterDecimalPoint) * this.#parseDigit(c);
             } else {
                 this.currentValue *= 10;
-                this.currentValue += this._parseDigit(c);
+                this.currentValue += this.#parseDigit(c);
             }
         } else {
-            this._finishCurrentValue();
-            this._handleOtherCharacter(c);
+            this.#finishCurrentValue();
+            this.#handleOtherCharacter(c);
         }
     }
 
-    _handleOtherCharacter(c) {
-        if (this._isWhitespace(c)) {
+    #handleOtherCharacter(c) {
+        if (this.#isWhitespace(c)) {
             return;
         } else if (c === '{') {
-            this._pushObject();
+            this.#pushObject();
             this.isObjectKey = true;
-            this._callCallback(this.cb.onobjectstart);
+            this.#callCallback(this.cb.onobjectstart);
         } else if (c === '}') {
-            this._pop();
-            this._callCallback(this.cb.onobjectend);
+            this.#pop();
+            this.#callCallback(this.cb.onobjectend);
         } else if (c === '[') {
-            this._pushArray();
-            this._callCallback(this.cb.onarraystart);
+            this.#pushArray();
+            this.#callCallback(this.cb.onarraystart);
         } else if (c === ']') {
-            this._pop();
-            this._callCallback(this.cb.onarrayend);
+            this.#pop();
+            this.#callCallback(this.cb.onarrayend);
         } else if (c === '"') {
             this.isString = true;
             this.currentValue = '';
         } else if (c === '-') {
             this.isNumber = true;
             this.isNegativeNumber = true;
-        } else if (this._isDigit(c)) {
+        } else if (this.#isDigit(c)) {
             this.isNumber = true;
-            this.currentValue = this._parseDigit(c);
+            this.currentValue = this.#parseDigit(c);
         } else if (c === ',') {
-            if (this._isObject()) {
-                this._finishCurrentValue();
+            if (this.#isObject()) {
+                this.#finishCurrentValue();
                 this.isObjectKey = true;
-            } else if (this._isArray()) {
-                this._finishCurrentValue();
+            } else if (this.#isArray()) {
+                this.#finishCurrentValue();
             }
         } else if (c === ':') {
-            this._finishCurrentValue();
+            this.#finishCurrentValue();
             this.isObjectKey = false;
         } else if (this.isConstant) {
             this.currentValue += c;
@@ -198,23 +198,23 @@ export class JsonParser {
             if (this.isClosed) {
                 return;
             } else if (this.isString) {
-                this._handleStringCharacter(c);
+                this.#handleStringCharacter(c);
             } else if (this.isNumber) {
-                this._handleNumberCharacter(c);
+                this.#handleNumberCharacter(c);
             } else {
-                this._handleOtherCharacter(c);
+                this.#handleOtherCharacter(c);
             }
         }
     }
 
-    _finishCurrentValue() {
+    #finishCurrentValue() {
         if (this.isString) {
             this.isString = false;
             if (this.isObjectKey) {
                 this.isObjectKey = false;
-                this._callCallback(this.cb.onkey, this.currentValue);
+                this.#callCallback(this.cb.onkey, this.currentValue);
             } else {
-                this._callCallback(this.cb.onstring, this.currentValue);
+                this.#callCallback(this.cb.onstring, this.currentValue);
             }
         } else if (this.isNumber) {
             this.isNumber = false;
@@ -229,33 +229,33 @@ export class JsonParser {
                 this.currentValue = -this.currentValue;
                 this.isNegativeNumber = false;
             }
-            this._callCallback(this.cb.onnumber, this.currentValue);
+            this.#callCallback(this.cb.onnumber, this.currentValue);
         } else if (this.isConstant) {
             this.isConstant = false;
             if (this.currentValue === 'null') {
-                this._callCallback(this.cb.onnull);
+                this.#callCallback(this.cb.onnull);
             } else if (this.currentValue === 'true') {
-                this._callCallback(this.cb.onboolean, true);
+                this.#callCallback(this.cb.onboolean, true);
             } else if (this.currentValue === 'false') {
-                this._callCallback(this.cb.onboolean, false);
+                this.#callCallback(this.cb.onboolean, false);
             }
         }
         this.currentValue = null;
     }
 
-    _isWhitespace(c) {
+    #isWhitespace(c) {
         return c === ' ' || c === '\n' || c === '\r' || c === '\t';
     }
 
-    _isDigit(c) {
+    #isDigit(c) {
         return '0' <= c && c <= '9';
     }
 
-    _parseDigit(c) {
+    #parseDigit(c) {
         return parseInt(c, 10);
     }
 
-    _parseHexDigit(c) {
+    #parseHexDigit(c) {
         return parseInt(c, 16);
     }
 
@@ -269,7 +269,7 @@ export class JsonParser {
         }
         this.isClosed = true;
         if (!this.isInsideCallback) {
-            this._finishCurrentValue();
+            this.#finishCurrentValue();
         }
     }
 }
