@@ -57,11 +57,11 @@ const parser = new JsonParser({
 
 await new Promise((resolve, reject) => {
     https.get('https://jfhr.de/jsonparser2/Q2063.json', res => {
-        res.setEncoding('utf-8');
+        res.setEncoding('utf-8');  // or another encoding
         res.on('error', reject);
         res.on('data', chunk => parser.write(decoder.write(chunk)));
         res.on('close', () => {
-            parser.end();
+            parser.end(decoder.end());
             resolve();
         });
     });
@@ -79,7 +79,7 @@ const parser = new JsonParser({
 });
 
 const response = await fetch('https://jfhr.de/jsonparser2/Q2063.json');
-const decoder = new StringDecoder('utf-8');
+const decoder = new StringDecoder('utf-8');  // or another encoding
 for await (const chunk of response) {
     parser.write(decoder.write(chunk));
 }
